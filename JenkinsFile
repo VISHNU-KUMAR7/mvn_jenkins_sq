@@ -1,0 +1,29 @@
+pipeline {
+  agent any
+  stages {
+      stage("SCM"){
+          steps{
+          git branch: 'maven_test', credentialsId: 'vishnu', url: 'https://<gihub_URL>/<github_Usernaemf>/<repooritry_name>.git'
+          }
+      }
+     stage('SonarQube analysis') {
+      steps {
+        script {
+          // requires SonarQube Scanner 2.8+
+          scannerHome = tool 'sonar-scanner'
+        }
+        withSonarQubeEnv('SonarQube QA') {
+          sh "mvn clean install"
+          sh "mvn sonar:sonar -Dsonar.projectKey=<project_key> -Dsonar.projectVersion=${BUILD_TAG} -Dsonar.projectName=${JOB_NAME} -Dsonar.host.url=<sonarqube_main_page_url> -Dsonar.login=99607da0025b977c04d293721494cf4b6498383f -Dsonar.coverage.jacoco.xmlReportPaths=target/**/*.xml -Dsonar.java.binaries=target/**"
+        }
+      }
+     }
+     stage("Quality Gate") {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+  }
+}
